@@ -1,0 +1,62 @@
+# ===================================================================
+# Dependencies / Vendoring
+# ===================================================================
+# Direktori vendor yang berisi dependensi proyek
+vendor/
+
+
+# ===================================================================
+# Build & Executable Files
+# ===================================================================
+# Abaikan file binary/executable hasil kompilasi
+# Ganti "nama-binary-proyekmu" dengan nama output proyekmu jika ada
+/nama-binary-proyekmu
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+
+# ===================================================================
+# Test & Coverage
+# ===================================================================
+# Abaikan file hasil testing dan coverage
+*.test
+*.out
+coverage.*
+profile.out
+c.out
+
+
+# ===================================================================
+# Environment Variables
+# ===================================================================
+# Jangan pernah commit file environment. Simpan template-nya saja.
+.env
+.env.*
+!.env.example
+
+
+# ===================================================================
+# IDE & Editor Configuration
+# ===================================================================
+# Direktori spesifik untuk VS Code, GoLand, dll.
+.vscode/
+.idea/
+.fleet/
+*.sublime-project
+*.sublime-workspace
+
+
+# ===================================================================
+# OS Generated Files
+# ===================================================================
+# File sampah dari sistem operasi
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
