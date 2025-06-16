@@ -37,32 +37,51 @@ func main() {
 	ctx := context.Background()
 
 	// ---- MULAI PERUBAHAN ----
-	// Ambil project ID dari environment variable
-	projectID := os.Getenv("FIREBASE_PROJECT_ID")
-	if projectID == "" {
-		log.Fatal("FIREBASE_PROJECT_ID is not found in env")
+	// Validasi semua environment variable yang diperlukan
+	requiredEnvVars := map[string]string{
+		"FIREBASE_TYPE":                        os.Getenv("FIREBASE_TYPE"),
+		"FIREBASE_PROJECT_ID":                  os.Getenv("FIREBASE_PROJECT_ID"),
+		"FIREBASE_PRIVATE_KEY_ID":              os.Getenv("FIREBASE_PRIVATE_KEY_ID"),
+		"FIREBASE_PRIVATE_KEY":                 os.Getenv("FIREBASE_PRIVATE_KEY"),
+		"FIREBASE_CLIENT_EMAIL":                os.Getenv("FIREBASE_CLIENT_EMAIL"),
+		"FIREBASE_CLIENT_ID":                   os.Getenv("FIREBASE_CLIENT_ID"),
+		"FIREBASE_AUTH_URI":                    os.Getenv("FIREBASE_AUTH_URI"),
+		"FIREBASE_TOKEN_URI":                   os.Getenv("FIREBASE_TOKEN_URI"),
+		"FIREBASE_AUTH_PROVIDER_X509_CERT_URL": os.Getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
+		"FIREBASE_CLIENT_X509_CERT_URL":        os.Getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 	}
 
-	// Muat kredensial Firebase dari environment variables
-	privateKey := os.Getenv("FIREBASE_PRIVATE_KEY")
-	if privateKey == "" {
-		log.Fatal("FIREBASE_PRIVATE_KEY is not found in env")
+	// Periksa apakah ada environment variable yang kosong
+	for key, value := range requiredEnvVars {
+		if value == "" {
+			log.Fatalf("%s is not found in env", key)
+		}
 	}
+
+	projectID := requiredEnvVars["FIREBASE_PROJECT_ID"]
+
+	// Proses private key
+	privateKey := requiredEnvVars["FIREBASE_PRIVATE_KEY"]
 	// Ganti kembali \\n menjadi \n
 	privateKey = strings.ReplaceAll(privateKey, "\\n", "\n")
 
 	// Buat struktur kredensial dalam bentuk map
 	creds := map[string]string{
-		"type":                        os.Getenv("FIREBASE_TYPE"),
+		"type":                        requiredEnvVars["FIREBASE_TYPE"],
 		"project_id":                  projectID,
-		"private_key_id":              os.Getenv("FIREBASE_PRIVATE_KEY_ID"),
+		"private_key_id":              requiredEnvVars["FIREBASE_PRIVATE_KEY_ID"],
 		"private_key":                 privateKey,
-		"client_email":                os.Getenv("FIREBASE_CLIENT_EMAIL"),
-		"client_id":                   os.Getenv("FIREBASE_CLIENT_ID"),
-		"auth_uri":                    os.Getenv("FIREBASE_AUTH_URI"),
-		"token_uri":                   os.Getenv("FIREBASE_TOKEN_URI"),
-		"auth_provider_x509_cert_url": os.Getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
-		"client_x509_cert_url":        os.Getenv("FIREBASE_CLIENT_X509_CERT_URL"),
+		"client_email":                requiredEnvVars["FIREBASE_CLIENT_EMAIL"],
+		"client_id":                   requiredEnvVars["FIREBASE_CLIENT_ID"],
+		"auth_uri":                    requiredEnvVars["FIREBASE_AUTH_URI"],
+		"token_uri":                   requiredEnvVars["FIREBASE_TOKEN_URI"],
+		"auth_provider_x509_cert_url": requiredEnvVars["FIREBASE_AUTH_PROVIDER_X509_CERT_URL"],
+		"client_x509_cert_url":        requiredEnvVars["FIREBASE_CLIENT_X509_CERT_URL"],
+	}
+
+	// Tambahkan universe_domain jika ada
+	if universeDomain := os.Getenv("FIREBASE_UNIVERSE_DOMAIN"); universeDomain != "" {
+		creds["universe_domain"] = universeDomain
 	}
 
 	// Ubah map menjadi JSON dalam bentuk byte slice
@@ -70,6 +89,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to marshal credentials to JSON: %v", err)
 	}
+
+	// Debug: Log panjang JSON untuk memastikan tidak kosong
+	log.Printf("Credentials JSON length: %d", len(credsJSON))
 
 	// Buat credential option menggunakan JSON yang sudah kita buat
 	opt := option.WithCredentialsJSON(credsJSON)
