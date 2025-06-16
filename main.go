@@ -37,6 +37,12 @@ func main() {
 	ctx := context.Background()
 
 	// ---- MULAI PERUBAHAN ----
+	// Ambil project ID dari environment variable
+	projectID := os.Getenv("FIREBASE_PROJECT_ID")
+	if projectID == "" {
+		log.Fatal("FIREBASE_PROJECT_ID is not found in env")
+	}
+
 	// Muat kredensial Firebase dari environment variables
 	privateKey := os.Getenv("FIREBASE_PRIVATE_KEY")
 	if privateKey == "" {
@@ -48,7 +54,7 @@ func main() {
 	// Buat struktur kredensial dalam bentuk map
 	creds := map[string]string{
 		"type":                        os.Getenv("FIREBASE_TYPE"),
-		"project_id":                  os.Getenv("FIREBASE_PROJECT_ID"),
+		"project_id":                  projectID,
 		"private_key_id":              os.Getenv("FIREBASE_PRIVATE_KEY_ID"),
 		"private_key":                 privateKey,
 		"client_email":                os.Getenv("FIREBASE_CLIENT_EMAIL"),
@@ -68,8 +74,13 @@ func main() {
 	// Buat credential option menggunakan JSON yang sudah kita buat
 	opt := option.WithCredentialsJSON(credsJSON)
 
-	// Inisialisasi aplikasi Firebase dengan option tersebut
-	app, err := firebase.NewApp(ctx, nil, opt)
+	// Buat konfigurasi Firebase dengan project ID yang eksplisit
+	config := &firebase.Config{
+		ProjectID: projectID,
+	}
+
+	// Inisialisasi aplikasi Firebase dengan config dan option
+	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
 		log.Fatalf("error initializing app with manual credentials: %v\n", err)
 	}
