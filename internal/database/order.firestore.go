@@ -18,6 +18,7 @@ type CreateOrderWithPaymentRequest struct {
 	OrderType           enums.OrderType
 	EstimatedReadyTime  *time.Time
 	SpecialInstructions *string
+	TableReservation    *CreateTableReservationRequest
 	OrderItems          []OrderItem
 }
 
@@ -41,6 +42,9 @@ func CreateOrderWithPayment(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get payment method: %v", err)
 	}
+	if paymentMethod.MidtransIdentifier == nil {
+		return nil, fmt.Errorf("midtrans identifier is null choose another: %v", err)
+	}
 
 	var totalAmount float64
 	for _, item := range req.OrderItems {
@@ -55,24 +59,24 @@ func CreateOrderWithPayment(
 		return nil, fmt.Errorf("midtrans charge failed: %v", chargeErr.GetMessage())
 	}
 
-	// --- PERUBAHAN UTAMA: Buat map untuk ditulis ke Firestore ---
+	batch := firestoreClient.Batch()
+
 	orderData := map[string]any{
 		"id":                  orderID,
 		"userId":              req.UserID,
 		"paymentMethodId":     req.PaymentMethodID,
 		"orderType":           req.OrderType,
 		"status":              enums.OrderStatusPending,
-		"paymentStatus":       enums.PaymentStatusUnpaid,
+		"paymentStatus":       enums.PaymentStatusPending,
 		"totalAmount":         totalAmount,
 		"estimatedReadyTime":  req.EstimatedReadyTime,
 		"specialInstructions": req.SpecialInstructions,
-		"orderItems":          req.OrderItems, // Client Go akan menangani marshaling struct ini
+		"orderItems":          req.OrderItems,
 		"paymentDetailsRaw":   chargeResp,
-		"createdAt":           firestore.ServerTimestamp, // Sekarang menjadi map value, INI BENAR
-		"updatedAt":           firestore.ServerTimestamp, // Sekarang menjadi map value, INI BENAR
+		"createdAt":           firestore.ServerTimestamp,
+		"updatedAt":           firestore.ServerTimestamp,
 	}
 
-	// Parsing dan tambahkan data pembayaran ke map
 	if len(chargeResp.VaNumbers) > 0 {
 		orderData["paymentCode"] = chargeResp.VaNumbers[0].VANumber
 	}
@@ -90,21 +94,58 @@ func CreateOrderWithPayment(
 		orderData["paymentExpiry"] = expiryTime
 	}
 
-	// Tulis map ke Firestore, bukan struct
-	_, err = firestoreClient.Collection("orders").Doc(orderID).Set(ctx, orderData)
-	if err != nil {
-		log.Printf("CRITICAL: Order %s created at Midtrans but failed to save to Firestore: %v", orderID, err)
-		return nil, fmt.Errorf("payment created but failed to save order: %v", err)
+	if req.OrderType == enums.OrderTypeDineIn && req.TableReservation != nil {
+		reservationID := firestoreClient.Collection("tableReservations").NewDoc().ID
+		reservationData := map[string]any{
+			"id":              reservationID,
+			"userId":          req.UserID,
+			"tableId":         req.TableReservation.TableId,
+			"orderId":         orderID,
+			"reservationTime": req.TableReservation.ReservationTime,
+			"status":          enums.StatusReserved,
+			"table":           req.TableReservation.Table,
+			"createdAt":       firestore.ServerTimestamp,
+			"updatedAt":       firestore.ServerTimestamp,
+		}
+		reservationDocRef := firestoreClient.Collection("tableReservations").Doc(reservationID)
+		batch.Set(reservationDocRef, reservationData)
+		orderData["reservationId"] = reservationID
 	}
 
-	// Buat struct Order untuk dikembalikan ke handler, karena penulisan sudah sukses
+	orderDocRef := firestoreClient.Collection("orders").Doc(orderID)
+	batch.Set(orderDocRef, orderData)
+
+	var menuItemIDs []string
+	for _, item := range req.OrderItems {
+		menuItemIDs = append(menuItemIDs, item.MenuItemId)
+	}
+
+	if len(menuItemIDs) > 0 {
+		cartItemsQuery := firestoreClient.Collection("cartItems").
+			Where("userId", "==", req.UserID).
+			Where("menuItemId", "in", menuItemIDs)
+
+		docs, err := cartItemsQuery.Documents(ctx).GetAll()
+		if err != nil {
+			return nil, fmt.Errorf("failed to query cart items for deletion: %v", err)
+		}
+		for _, doc := range docs {
+			batch.Delete(doc.Ref)
+		}
+	}
+
+	if _, err := batch.Commit(ctx); err != nil {
+		log.Printf("CRITICAL: Order %s created at Midtrans but failed to commit batch to Firestore: %v", orderID, err)
+		return nil, fmt.Errorf("payment created but failed to save order and related data: %v", err)
+	}
+
 	finalOrder := &Order{
 		ID:                  orderID,
 		UserID:              req.UserID,
 		PaymentMethodID:     req.PaymentMethodID,
 		OrderType:           req.OrderType,
 		Status:              enums.OrderStatusPending,
-		PaymentStatus:       enums.PaymentStatusUnpaid,
+		PaymentStatus:       enums.PaymentStatusPending,
 		TotalAmount:         totalAmount,
 		EstimatedReadyTime:  req.EstimatedReadyTime,
 		SpecialInstructions: req.SpecialInstructions,
@@ -118,7 +159,6 @@ func CreateOrderWithPayment(
 	return finalOrder, nil
 }
 
-// toMapPointer safely converts an any to *map[string]any
 func toMapPointer(val any) *map[string]any {
 	if m, ok := val.(map[string]any); ok {
 		return &m
@@ -126,7 +166,6 @@ func toMapPointer(val any) *map[string]any {
 	return nil
 }
 
-// toStringPointer safely converts an any to *string
 func toStringPointer(val any) *string {
 	if s, ok := val.(string); ok {
 		return &s
@@ -134,7 +173,6 @@ func toStringPointer(val any) *string {
 	return nil
 }
 
-// toTimePointer safely converts an any to *time.Time
 func toTimePointer(val any) *time.Time {
 	if t, ok := val.(time.Time); ok {
 		return &t
@@ -172,9 +210,9 @@ func buildMidtransChargeRequest(orderID string, totalAmount float64, user *User,
 	switch paymentMethod.PaymentMethodType {
 	case enums.PaymentMethodTypeVirtualAccount:
 		chargeReq.PaymentType = coreapi.PaymentTypeBankTransfer
-		chargeReq.BankTransfer = &coreapi.BankTransferDetails{Bank: midtrans.Bank(paymentMethod.MidtransIdentifier)}
+		chargeReq.BankTransfer = &coreapi.BankTransferDetails{Bank: midtrans.Bank(*paymentMethod.MidtransIdentifier)}
 	case enums.PaymentMethodTypeEWallet:
-		switch paymentMethod.MidtransIdentifier {
+		switch *paymentMethod.MidtransIdentifier {
 		case "gopay":
 			chargeReq.PaymentType = coreapi.PaymentTypeGopay
 		case "shopeepay":
@@ -183,10 +221,10 @@ func buildMidtransChargeRequest(orderID string, totalAmount float64, user *User,
 		}
 	case enums.PaymentMethodTypeQrCode:
 		chargeReq.PaymentType = coreapi.PaymentTypeQris
-		chargeReq.Qris = &coreapi.QrisDetails{Acquirer: paymentMethod.MidtransIdentifier}
+		chargeReq.Qris = &coreapi.QrisDetails{Acquirer: *paymentMethod.MidtransIdentifier}
 	case enums.PaymentMethodTypeOverTheCounter:
 		chargeReq.PaymentType = coreapi.PaymentTypeConvenienceStore
-		chargeReq.ConvStore = &coreapi.ConvStoreDetails{Store: paymentMethod.MidtransIdentifier}
+		chargeReq.ConvStore = &coreapi.ConvStoreDetails{Store: *paymentMethod.MidtransIdentifier}
 	}
 	return chargeReq
 }

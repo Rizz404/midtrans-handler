@@ -46,8 +46,11 @@ const (
 type PaymentStatus string
 
 const (
-	PaymentStatusUnpaid PaymentStatus = "unpaid"
-	PaymentStatusPaid   PaymentStatus = "paid"
+	PaymentStatusChallenge PaymentStatus = "challenge"
+	PaymentStatusSuccess   PaymentStatus = "success"
+	PaymentStatusDeny      PaymentStatus = "deny"
+	PaymentStatusFailure   PaymentStatus = "failure"
+	PaymentStatusPending   PaymentStatus = "pending"
 )
 
 type PaymentMethodType string

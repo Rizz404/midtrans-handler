@@ -27,7 +27,6 @@ type MidtransNotificationPayload struct {
 }
 
 func (apiCfg *apiConfig) handlerMidtransWebhook(w http.ResponseWriter, r *http.Request) {
-	// 1. Baca body dari request
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not read request body")
@@ -35,46 +34,43 @@ func (apiCfg *apiConfig) handlerMidtransWebhook(w http.ResponseWriter, r *http.R
 	}
 	defer r.Body.Close()
 
-	// 2. Unmarshal body ke struct payload
 	var payload MidtransNotificationPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid notification payload")
 		return
 	}
 
-	// 3. Verifikasi Signature Key (SANGAT PENTING UNTUK KEAMANAN)
 	signature := generateSignatureKey(payload.OrderID, payload.StatusCode, payload.GrossAmount, apiCfg.MidtransServerKey)
 	if signature != payload.SignatureKey {
 		respondWithError(w, http.StatusUnauthorized, "Invalid signature")
 		return
 	}
 
-	// 4. Siapkan data untuk update order
 	updateReq := database.UpdateOrderRequest{}
 	var paymentStatus enums.PaymentStatus
 	var orderStatus enums.OrderStatus
 
-	// 5. Tentukan status baru berdasarkan status transaksi dari Midtrans
 	switch payload.TransactionStatus {
 	case "capture":
 		if payload.FraudStatus == "accept" {
-			paymentStatus = enums.PaymentStatusPaid
-			orderStatus = enums.OrderStatusPreparing
+			paymentStatus = enums.PaymentStatusSuccess
+			orderStatus = enums.OrderStatusConfirmed
+		} else if payload.FraudStatus == "challenge" {
+			paymentStatus = enums.PaymentStatusChallenge
 		}
 	case "settlement":
-		paymentStatus = enums.PaymentStatusPaid
-		orderStatus = enums.OrderStatusPreparing
+		paymentStatus = enums.PaymentStatusSuccess
+		orderStatus = enums.OrderStatusConfirmed
+	case "deny":
+		paymentStatus = enums.PaymentStatusDeny
+		orderStatus = enums.OrderStatusCancelled
+	case "cancel", "expire":
+		paymentStatus = enums.PaymentStatusFailure
+		orderStatus = enums.OrderStatusCancelled
 	case "pending":
-		paymentStatus = enums.PaymentStatusUnpaid
+		paymentStatus = enums.PaymentStatusPending
 		orderStatus = enums.OrderStatusPending
-	case "deny", "cancel":
-		paymentStatus = enums.PaymentStatusUnpaid
-		orderStatus = enums.OrderStatusCancelled
-	case "expire":
-		paymentStatus = enums.PaymentStatusUnpaid
-		orderStatus = enums.OrderStatusCancelled
 	default:
-		// Jika ada status lain yang tidak kita tangani, kita tidak melakukan apa-apa
 		respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook received, no action taken"})
 		return
 	}
@@ -82,20 +78,14 @@ func (apiCfg *apiConfig) handlerMidtransWebhook(w http.ResponseWriter, r *http.R
 	updateReq.PaymentStatus = &paymentStatus
 	updateReq.OrderStatus = &orderStatus
 
-	// 6. Update order di database
 	_, err = database.UpdateOrder(r.Context(), apiCfg.Firestore, payload.OrderID, updateReq)
 	if err != nil {
-		// Meskipun gagal update, kita tetap kirim 200 OK ke Midtrans
-		// agar mereka tidak mengirim ulang notifikasi.
-		// Kegagalan ini harus di-log secara serius untuk diperiksa manual.
 		fmt.Printf("WEBHOOK_ERROR: Failed to update order %s: %v\n", payload.OrderID, err)
 	}
 
-	// 7. Kirim respons 200 OK ke Midtrans untuk mengonfirmasi penerimaan
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook processed successfully"})
 }
 
-// generateSignatureKey membuat hash SHA-512 sesuai aturan Midtrans
 func generateSignatureKey(orderID, statusCode, grossAmount, serverKey string) string {
 	str := fmt.Sprintf("%s%s%s%s", orderID, statusCode, grossAmount, serverKey)
 	hasher := sha512.New()

@@ -11,11 +11,15 @@ import (
 
 func (apiCfg *apiConfig) handlerCreatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Name               string                  `json:"name"`
-		Description        string                  `json:"description"`
-		Logo               *string                 `json:"logo,omitempty"`
-		PaymentMethodType  enums.PaymentMethodType `json:"paymentMethodType"`
-		MidtransIdentifier string                  `json:"midtransIdentifier"`
+		Name                      string                  `json:"name"`
+		Description               string                  `json:"description"`
+		Logo                      *string                 `json:"logo,omitempty"`
+		PaymentMethodType         enums.PaymentMethodType `json:"paymentMethodType"`
+		MidtransIdentifier        *string                 `json:"midtransIdentifier"`
+		MinimumAmount             float64                 `json:"minimumAmount"`
+		MaximumAmount             float64                 `json:"maximumAmount"`
+		AdminPaymentCode          *string                 `json:"adminPaymentCode,omitempty"`
+		AdminPaymentQrCodePicture *string                 `json:"adminPaymentQrCodePicture,omitempty"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -28,11 +32,15 @@ func (apiCfg *apiConfig) handlerCreatePaymentMethod(w http.ResponseWriter, r *ht
 	}
 
 	paymentMethod, err := database.CreatePaymentMethod(r.Context(), apiCfg.Firestore, database.CreatePaymentMethodRequest{
-		Name:               params.Name,
-		Description:        params.Description,
-		Logo:               params.Logo,
-		PaymentMethodType:  params.PaymentMethodType,
-		MidtransIdentifier: params.MidtransIdentifier,
+		Name:                      params.Name,
+		Description:               params.Description,
+		Logo:                      params.Logo,
+		PaymentMethodType:         params.PaymentMethodType,
+		MidtransIdentifier:        params.MidtransIdentifier,
+		MinimumAmount:             params.MinimumAmount,
+		MaximumAmount:             params.MaximumAmount,
+		AdminPaymentCode:          params.AdminPaymentCode,
+		AdminPaymentQrCodePicture: params.AdminPaymentQrCodePicture,
 	})
 
 	if err != nil {

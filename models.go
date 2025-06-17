@@ -39,6 +39,16 @@ type DenormalizedMenuItem struct {
 	UpdatedAt  any       `json:"updatedAt"`
 }
 
+type CartItem struct {
+	ID         string                `json:"id"`
+	MenuItemId string                `json:"menuItemId"`
+	UserId     string                `json:"userId"`
+	Quantity   int                   `json:"quantity"`
+	MenuItem   *DenormalizedMenuItem `json:"menuItem,omitempty"`
+	CreatedAt  any                   `json:"createdAt"`
+	UpdatedAt  any                   `json:"updatedAt"`
+}
+
 type OrderItem struct {
 	ID              string                `json:"id"`
 	OrderId         string                `json:"orderId"`
@@ -96,14 +106,18 @@ type TableReservation struct {
 }
 
 type PaymentMethod struct {
-	ID                 string                  `json:"id"`
-	Name               string                  `json:"name"`
-	Description        string                  `json:"description"`
-	Logo               *string                 `json:"logo,omitempty"`
-	PaymentMethodType  enums.PaymentMethodType `json:"paymentMethodType"`
-	MidtransIdentifier string                  `json:"midtransIdentifier"`
-	CreatedAt          any                     `json:"createdAt"`
-	UpdatedAt          any                     `json:"updatedAt"`
+	ID                        string                  `json:"id"`
+	Name                      string                  `json:"name"`
+	Description               string                  `json:"description"`
+	Logo                      *string                 `json:"logo,omitempty"`
+	PaymentMethodType         enums.PaymentMethodType `json:"paymentMethodType"`
+	MidtransIdentifier        *string                 `json:"midtransIdentifier"`
+	MinimumAmount             float64                 `json:"minimumAmount"`
+	MaximumAmount             float64                 `json:"maximumAmount"`
+	AdminPaymentCode          *string                 `json:"adminPaymentCode,omitempty"`
+	AdminPaymentQrCodePicture *string                 `json:"adminPaymentQrCodePicture,omitempty"`
+	CreatedAt                 any                     `json:"createdAt"`
+	UpdatedAt                 any                     `json:"updatedAt"`
 }
 
 // * Mapper Functions

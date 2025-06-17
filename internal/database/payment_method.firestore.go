@@ -10,31 +10,44 @@ import (
 )
 
 type CreatePaymentMethodRequest struct {
-	Name               string
-	Description        string
-	Logo               *string
-	PaymentMethodType  enums.PaymentMethodType
-	MidtransIdentifier string
+	Name                      string
+	Description               string
+	Logo                      *string
+	PaymentMethodType         enums.PaymentMethodType
+	MidtransIdentifier        *string
+	MinimumAmount             float64
+	MaximumAmount             float64
+	AdminPaymentCode          *string
+	AdminPaymentQrCodePicture *string
 }
 
 type UpdatePaymentMethodRequest struct {
-	Name        *string
-	Description *string
-	Logo        *string
+	Name                      *string
+	Description               *string
+	Logo                      *string
+	MidtransIdentifier        *string
+	MinimumAmount             float64
+	MaximumAmount             float64
+	AdminPaymentCode          *string
+	AdminPaymentQrCodePicture *string
 }
 
 func CreatePaymentMethod(ctx context.Context, client *firestore.Client, request CreatePaymentMethodRequest) (*PaymentMethod, error) {
 	docRef := client.Collection("paymentMethods").NewDoc()
 
 	initialData := map[string]any{
-		"id":                 docRef.ID,
-		"name":               request.Name,
-		"description":        request.Description,
-		"logo":               request.Logo,
-		"paymentMethodType":  request.PaymentMethodType,
-		"midtransIdentifier": request.MidtransIdentifier,
-		"createdAt":          firestore.ServerTimestamp,
-		"updatedAt":          firestore.ServerTimestamp,
+		"id":                        docRef.ID,
+		"name":                      request.Name,
+		"description":               request.Description,
+		"logo":                      request.Logo,
+		"paymentMethodType":         request.PaymentMethodType,
+		"midtransIdentifier":        request.MidtransIdentifier,
+		"minimumAmount":             request.MinimumAmount,
+		"maximumAmount":             request.MaximumAmount,
+		"adminPaymentCode":          request.AdminPaymentCode,
+		"adminPaymentQrCodePicture": request.AdminPaymentQrCodePicture,
+		"createdAt":                 firestore.ServerTimestamp,
+		"updatedAt":                 firestore.ServerTimestamp,
 	}
 
 	_, err := docRef.Set(ctx, initialData)
@@ -68,14 +81,18 @@ func BulkCreatePaymentMethods(ctx context.Context, client *firestore.Client, req
 		newDocIDs = append(newDocIDs, docRef.ID)
 
 		initialData := map[string]any{
-			"id":                 docRef.ID,
-			"name":               request.Name,
-			"description":        request.Description,
-			"logo":               request.Logo,
-			"paymentMethodType":  request.PaymentMethodType,
-			"midtransIdentifier": request.MidtransIdentifier,
-			"createdAt":          firestore.ServerTimestamp,
-			"updatedAt":          firestore.ServerTimestamp,
+			"id":                        docRef.ID,
+			"name":                      request.Name,
+			"description":               request.Description,
+			"logo":                      request.Logo,
+			"paymentMethodType":         request.PaymentMethodType,
+			"midtransIdentifier":        request.MidtransIdentifier,
+			"minimumAmount":             request.MinimumAmount,
+			"maximumAmount":             request.MaximumAmount,
+			"adminPaymentCode":          request.AdminPaymentCode,
+			"adminPaymentQrCodePicture": request.AdminPaymentQrCodePicture,
+			"createdAt":                 firestore.ServerTimestamp,
+			"updatedAt":                 firestore.ServerTimestamp,
 		}
 		batch.Set(docRef, initialData)
 	}
@@ -147,6 +164,7 @@ func GetPaymentMethodByID(ctx context.Context, client *firestore.Client, id stri
 	return &paymentMethod, nil
 }
 
+// Todo: Belum di fix turu
 func UpdatePaymentMethod(ctx context.Context, client *firestore.Client, id string, request UpdatePaymentMethodRequest) (*PaymentMethod, error) {
 	docRef := client.Collection("paymentMethods").Doc(id)
 

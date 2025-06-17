@@ -39,6 +39,16 @@ type DenormalizedMenuItem struct {
 	UpdatedAt  any       `firestore:"updatedAt"`
 }
 
+type CartItem struct {
+	ID         string                `firestore:"id"`
+	MenuItemId string                `firestore:"menuItemId"`
+	UserId     string                `firestore:"userId"`
+	Quantity   int                   `firestore:"quantity"`
+	MenuItem   *DenormalizedMenuItem `firestore:"menuItem,omitempty"`
+	CreatedAt  any                   `firestore:"createdAt"`
+	UpdatedAt  any                   `firestore:"updatedAt"`
+}
+
 type OrderItem struct {
 	ID              string                `firestore:"id"`
 	OrderId         string                `firestore:"orderId"`
@@ -96,12 +106,16 @@ type TableReservation struct {
 }
 
 type PaymentMethod struct {
-	ID                 string                  `firestore:"id"`
-	Name               string                  `firestore:"name"`
-	Description        string                  `firestore:"description"`
-	Logo               *string                 `firestore:"logo,omitempty"`
-	PaymentMethodType  enums.PaymentMethodType `firestore:"paymentMethodType"`
-	MidtransIdentifier string                  `firestore:"midtransIdentifier"`
-	CreatedAt          any                     `firestore:"createdAt"`
-	UpdatedAt          any                     `firestore:"updatedAt"`
+	ID                        string                  `firestore:"id"`
+	Name                      string                  `firestore:"name"`
+	Description               string                  `firestore:"description"`
+	Logo                      *string                 `firestore:"logo,omitempty"`
+	PaymentMethodType         enums.PaymentMethodType `firestore:"paymentMethodType"`
+	MidtransIdentifier        *string                 `firestore:"midtransIdentifier"`
+	MinimumAmount             float64                 `firestore:"minimumAmount"`
+	MaximumAmount             float64                 `firestore:"maximumAmount"`
+	AdminPaymentCode          *string                 `firestore:"adminPaymentCode,omitempty"`
+	AdminPaymentQrCodePicture *string                 `firestore:"adminPaymentQrCodePicture,omitempty"`
+	CreatedAt                 any                     `firestore:"createdAt"`
+	UpdatedAt                 any                     `firestore:"updatedAt"`
 }

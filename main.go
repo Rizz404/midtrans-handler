@@ -36,8 +36,7 @@ func main() {
 	// * Database
 	ctx := context.Background()
 
-	// ---- MULAI PERUBAHAN ----
-	// Validasi semua environment variable yang diperlukan
+	// * Validasi semua environment variable yang diperlukan
 	requiredEnvVars := map[string]string{
 		"FIREBASE_TYPE":                        os.Getenv("FIREBASE_TYPE"),
 		"FIREBASE_PROJECT_ID":                  os.Getenv("FIREBASE_PROJECT_ID"),
@@ -51,7 +50,7 @@ func main() {
 		"FIREBASE_CLIENT_X509_CERT_URL":        os.Getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 	}
 
-	// Periksa apakah ada environment variable yang kosong
+	// * Periksa apakah ada environment variable yang kosong
 	for key, value := range requiredEnvVars {
 		if value == "" {
 			log.Fatalf("%s is not found in env", key)
@@ -60,12 +59,12 @@ func main() {
 
 	projectID := requiredEnvVars["FIREBASE_PROJECT_ID"]
 
-	// Proses private key
+	// * Proses private key
 	privateKey := requiredEnvVars["FIREBASE_PRIVATE_KEY"]
-	// Ganti kembali \\n menjadi \n
+	// * Ganti kembali \\n menjadi \n
 	privateKey = strings.ReplaceAll(privateKey, "\\n", "\n")
 
-	// Buat struktur kredensial dalam bentuk map
+	// * Buat struktur kredensial dalam bentuk map
 	creds := map[string]string{
 		"type":                        requiredEnvVars["FIREBASE_TYPE"],
 		"project_id":                  projectID,
@@ -79,34 +78,30 @@ func main() {
 		"client_x509_cert_url":        requiredEnvVars["FIREBASE_CLIENT_X509_CERT_URL"],
 	}
 
-	// Tambahkan universe_domain jika ada
+	// * Tambahkan universe_domain jika ada
 	if universeDomain := os.Getenv("FIREBASE_UNIVERSE_DOMAIN"); universeDomain != "" {
 		creds["universe_domain"] = universeDomain
 	}
 
-	// Ubah map menjadi JSON dalam bentuk byte slice
+	// * Ubah map menjadi JSON dalam bentuk byte slice
 	credsJSON, err := json.Marshal(creds)
 	if err != nil {
 		log.Fatalf("failed to marshal credentials to JSON: %v", err)
 	}
 
-	// Debug: Log panjang JSON untuk memastikan tidak kosong
-	log.Printf("Credentials JSON length: %d", len(credsJSON))
-
-	// Buat credential option menggunakan JSON yang sudah kita buat
+	// * Buat credential option menggunakan JSON yang sudah kita buat
 	opt := option.WithCredentialsJSON(credsJSON)
 
-	// Buat konfigurasi Firebase dengan project ID yang eksplisit
+	// * Buat konfigurasi Firebase dengan project ID yang eksplisit
 	config := &firebase.Config{
 		ProjectID: projectID,
 	}
 
-	// Inisialisasi aplikasi Firebase dengan config dan option
+	// * Inisialisasi aplikasi Firebase dengan config dan option
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
 		log.Fatalf("error initializing app with manual credentials: %v\n", err)
 	}
-	// ---- SELESAI PERUBAHAN ----
 
 	firestoreClient, err := app.Firestore(ctx)
 	if err != nil {
