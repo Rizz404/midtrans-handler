@@ -158,6 +158,8 @@ func CreateOrderWithPayment(
 		PaymentCode:         toStringPointer(orderData["paymentCode"]),
 		PaymentDisplayURL:   toStringPointer(orderData["paymentDisplayUrl"]),
 		PaymentExpiry:       toTimePointer(orderData["paymentExpiry"]),
+		CreatedAt:           toTimePointer(orderData["createdAt"]),
+		UpdatedAt:           toTimePointer(orderData["updatedAt"]),
 	}
 
 	return finalOrder, nil
