@@ -12,12 +12,13 @@ import (
 
 func (apiCfg *apiConfig) handlerCreateOrder(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		UserID              string               `json:"userId"`
-		PaymentMethodID     string               `json:"paymentMethodId"`
-		OrderType           enums.OrderType      `json:"orderType"`
-		EstimatedReadyTime  *time.Time           `json:"estimatedReadyTime,omitempty"`
-		SpecialInstructions *string              `json:"specialInstructions,omitempty"`
-		OrderItems          []database.OrderItem `json:"orderItems"`
+		UserID              string                                  `json:"userId"`
+		PaymentMethodID     string                                  `json:"paymentMethodId"`
+		OrderType           enums.OrderType                         `json:"orderType"`
+		EstimatedReadyTime  *time.Time                              `json:"estimatedReadyTime,omitempty"`
+		SpecialInstructions *string                                 `json:"specialInstructions,omitempty"`
+		OrderItems          []database.OrderItem                    `json:"orderItems"`
+		TableReservation    *database.CreateTableReservationRequest `json:"tableReservation,omitempty"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -39,6 +40,7 @@ func (apiCfg *apiConfig) handlerCreateOrder(w http.ResponseWriter, r *http.Reque
 			EstimatedReadyTime:  params.EstimatedReadyTime,
 			SpecialInstructions: params.SpecialInstructions,
 			OrderItems:          params.OrderItems,
+			TableReservation:    params.TableReservation,
 		},
 	)
 

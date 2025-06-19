@@ -72,9 +72,9 @@ func CreateOrderWithPayment(
 		"estimatedReadyTime":  req.EstimatedReadyTime,
 		"specialInstructions": req.SpecialInstructions,
 		"orderItems":          req.OrderItems,
-		"paymentDetailsRaw":   chargeResp,
-		"createdAt":           firestore.ServerTimestamp,
-		"updatedAt":           firestore.ServerTimestamp,
+		// "paymentDetailsRaw":   chargeResp,
+		"createdAt": firestore.ServerTimestamp,
+		"updatedAt": firestore.ServerTimestamp,
 	}
 
 	if len(chargeResp.VaNumbers) > 0 {
