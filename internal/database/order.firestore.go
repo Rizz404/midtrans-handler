@@ -75,6 +75,9 @@ func CreateOrderWithPayment(
 		"estimatedReadyTime":  req.EstimatedReadyTime,
 		"specialInstructions": req.SpecialInstructions,
 		"orderItems":          req.OrderItems,
+		"paymentCode":         nil,
+		"paymentDisplayUrl":   nil,
+		"paymentExpiry":       nil,
 		// "paymentDetailsRaw":   chargeResp,
 		"createdAt": firestore.ServerTimestamp,
 		"updatedAt": firestore.ServerTimestamp,
@@ -154,12 +157,12 @@ func CreateOrderWithPayment(
 		SpecialInstructions: req.SpecialInstructions,
 		OrderItems:          req.OrderItems,
 		OrderDate:           now,
-		PaymentDetailsRaw:   toMapPointer(orderData["paymentDetailsRaw"]),
-		PaymentCode:         toStringPointer(orderData["paymentCode"]),
-		PaymentDisplayURL:   toStringPointer(orderData["paymentDisplayUrl"]),
-		PaymentExpiry:       toTimePointer(orderData["paymentExpiry"]),
-		CreatedAt:           toTimePointer(orderData["createdAt"]),
-		UpdatedAt:           toTimePointer(orderData["updatedAt"]),
+		// PaymentDetailsRaw:   toMapPointer(orderData["paymentDetailsRaw"]),
+		PaymentCode:       toStringPointer(orderData["paymentCode"]),
+		PaymentDisplayURL: toStringPointer(orderData["paymentDisplayUrl"]),
+		PaymentExpiry:     toTimePointer(orderData["paymentExpiry"]),
+		CreatedAt:         toTimePointer(orderData["createdAt"]),
+		UpdatedAt:         toTimePointer(orderData["updatedAt"]),
 	}
 
 	return finalOrder, nil
