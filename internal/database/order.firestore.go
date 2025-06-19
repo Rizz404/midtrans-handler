@@ -51,6 +51,8 @@ func CreateOrderWithPayment(
 		totalAmount += item.Total
 	}
 
+	now := time.Now()
+
 	orderID := firestoreClient.Collection("orders").NewDoc().ID
 	chargeReq := buildMidtransChargeRequest(orderID, totalAmount, user, paymentMethod, req.OrderItems)
 
@@ -69,6 +71,7 @@ func CreateOrderWithPayment(
 		"status":              enums.OrderStatusPending,
 		"paymentStatus":       enums.PaymentStatusPending,
 		"totalAmount":         totalAmount,
+		"orderDate":           now,
 		"estimatedReadyTime":  req.EstimatedReadyTime,
 		"specialInstructions": req.SpecialInstructions,
 		"orderItems":          req.OrderItems,
@@ -150,6 +153,7 @@ func CreateOrderWithPayment(
 		EstimatedReadyTime:  req.EstimatedReadyTime,
 		SpecialInstructions: req.SpecialInstructions,
 		OrderItems:          req.OrderItems,
+		OrderDate:           now,
 		PaymentDetailsRaw:   toMapPointer(orderData["paymentDetailsRaw"]),
 		PaymentCode:         toStringPointer(orderData["paymentCode"]),
 		PaymentDisplayURL:   toStringPointer(orderData["paymentDisplayUrl"]),
