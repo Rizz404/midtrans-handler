@@ -52,10 +52,11 @@ func (apiCfg *apiConfig) handlerMidtransWebhook(w http.ResponseWriter, r *http.R
 
 	switch payload.TransactionStatus {
 	case "capture":
-		if payload.FraudStatus == "accept" {
+		switch payload.FraudStatus {
+		case "accept":
 			paymentStatus = enums.PaymentStatusSuccess
 			orderStatus = enums.OrderStatusConfirmed
-		} else if payload.FraudStatus == "challenge" {
+		case "challenge":
 			paymentStatus = enums.PaymentStatusChallenge
 		}
 	case "settlement":
